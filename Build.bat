@@ -33,17 +33,21 @@ if "%BUILD_TYPE%"=="release" (
     del /Q %OUTPUT_DIR%\*.obj
 )
 
-rem Compile CUDA file
-echo Compiling CUDA file...
-nvcc -c Src\VerletCuda.cu -o %OUTPUT_DIR%\VerletCuda.obj -I "%CUDA_PATH%\include" -L "%CUDA_PATH%\lib\x64" -lcudart
-if errorlevel 1 (
-    echo CUDA compilation failed
-    exit /b 1
+rem Compile all CUDA files
+set CUDA_ARCH=-arch=sm_86 -gencode=arch=compute_86,code=sm_86
+echo Compiling CUDA files...
+for %%f in (Src\*.cu) do (
+    echo Compiling %%f...
+    nvcc %CUDA_ARCH% -c "%%f" -o "%OUTPUT_DIR%\%%~nf.obj" -I "%CUDA_PATH%\include" -I Src -Xcompiler "/FS /EHsc"
+    if errorlevel 1 (
+        echo CUDA compilation failed
+        exit /b 1
+    )
 )
 
-rem Compile and link Engine.cpp into object files and output to build folder
+rem Compile and link Engine.cpp with all CUDA objects
 echo Compiling Engine.cpp...
-cl /Fo:%OUTPUT_DIR%\ /Fe:%OUTPUT_DIR%\engine.exe /Fd:%OUTPUT_DIR%\engine.pdb %COMPILER_OPTS% %INCLUDE_OPTS% Src\Engine.cpp %OUTPUT_DIR%\VerletCuda.obj %LIB_OPTS%
+cl /Fo:%OUTPUT_DIR%\ /Fe:%OUTPUT_DIR%\engine.exe /Fd:%OUTPUT_DIR%\engine.pdb %COMPILER_OPTS% %INCLUDE_OPTS% Src\Engine.cpp %OUTPUT_DIR%\*.obj %LIB_OPTS%
 if errorlevel 1 (
     echo Compilation failed
     exit /b 1
