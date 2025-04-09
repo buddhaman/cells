@@ -1,5 +1,7 @@
 #include "External.h"
 #include "External.cpp"
+#include "VerletCuda.h"
+#include <cuda_runtime.h>
 
 #include "AnymUtil.h"
 #include "Array.h"
@@ -72,10 +74,31 @@ int main(int argc, char** argv)
     // Initialize random seed once. This will be replaced by my own rng.
     srand((U32)(time(nullptr)));
 
+    // Initialize CUDA
+    cudaError_t cudaStatus = cudaSetDevice(0);
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "cudaSetDevice failed! Do you have a CUDA-capable GPU installed?");
+        return -1;
+    }
+
+    // Test Verlet integration
+    const int num_particles = 1000;
+    VerletParticle* particles;
+    cudaMallocManaged(&particles, num_particles * sizeof(VerletParticle));
+    
+    // Initialize particles
+    for (int i = 0; i < num_particles; i++) {
+        particles[i].position = { (float)rand() / RAND_MAX * 2.0f - 1.0f, 
+                                (float)rand() / RAND_MAX * 2.0f - 1.0f };
+        particles[i].old_position = particles[i].position;
+        particles[i].acceleration = { 0.0f, -9.8f }; // Gravity
+    }
+
 #undef CreateWindow
     Window* window = CreateWindow(1280, 720);
     if(!window) 
     {
+        cudaFree(particles);
         return -1;
     }
     window->fps = 60;
@@ -88,9 +111,14 @@ int main(int argc, char** argv)
     EditorScreen editor;
     InitEditorScreen(&editor);
 
+    float dt = 1.0f / 60.0f; // Time step
+
     while (window->running) 
     {
         WindowBegin(window);
+        
+        VerletIntegration(particles, num_particles, dt);
+        
         switch(global_settings.current_phase)
         {
             case GamePhase_SimulationScreen: 
@@ -105,6 +133,9 @@ int main(int argc, char** argv)
         }
         WindowEnd(window);
     }
+
+    // Cleanup
+    cudaFree(particles);
     DestroyWindow(window);
 
     return 0;

@@ -8,7 +8,8 @@
                 "${workspaceFolder}/external/opengl/include",
                 "${workspaceFolder}/external/imgui",
                 "${workspaceFolder}/external/imgui/backends",
-                "${workspaceFolder}/external/implot"
+                "${workspaceFolder}/external/implot",
+                "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.8/include"
             ],
             "defines": [
                 "SDL_MAIN_HANDLED",
@@ -17,7 +18,15 @@
             "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.29.30133/bin/Hostx64/x64/cl.exe",
             "cStandard": "c17",
             "cppStandard": "c++20",
-            "intelliSenseMode": "windows-msvc-x64"
+            "intelliSenseMode": "windows-msvc-x64",
+            "browse": {
+                "path": [
+                    "${workspaceFolder}",
+                    "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.8/include"
+                ],
+                "limitSymbolsToIncludedHeaders": true,
+                "databaseFilename": "${workspaceFolder}/.vscode/browse.vc.db"
+            }
         }
     ],
     "version": 4
