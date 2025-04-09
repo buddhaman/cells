@@ -1,7 +1,7 @@
 #include "External.h"
 #include "External.cpp"
-#include "VerletCuda.h"
 #include <cuda_runtime.h>
+#include "Cuda/VerletCuda.h"
 
 #include "AnymUtil.h"
 #include "Array.h"

@@ -19,7 +19,7 @@ rem Set CUDA path
 set "CUDA_PATH=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8"
 
 rem Include directories
-set INCLUDE_OPTS=/I %SDL2_PATH%\include /I %OPENGL_PATH% /I %IMGUI_PATH%\include /I %IMGUI_PATH%\backends /I %IMGPLOT_PATH%\include /I "%CUDA_PATH%\include"
+set INCLUDE_OPTS=/I %SDL2_PATH%\include /I %OPENGL_PATH% /I %IMGUI_PATH%\include /I %IMGUI_PATH%\backends /I %IMGPLOT_PATH%\include /I "%CUDA_PATH%\include" /I Src\Cuda
 
 rem Libraries to link
 set LIB_OPTS=/link /LIBPATH:%SDL2_PATH%\lib /LIBPATH:"%CUDA_PATH%\lib\x64" SDL2.lib opengl32.lib user32.lib gdi32.lib shell32.lib cudart.lib
@@ -36,9 +36,9 @@ if "%BUILD_TYPE%"=="release" (
 rem Compile all CUDA files
 set CUDA_ARCH=-arch=sm_86 -gencode=arch=compute_86,code=sm_86
 echo Compiling CUDA files...
-for %%f in (Src\*.cu) do (
+for %%f in (Src\Cuda\*.cu) do (
     echo Compiling %%f...
-    nvcc %CUDA_ARCH% -c "%%f" -o "%OUTPUT_DIR%\%%~nf.obj" -I "%CUDA_PATH%\include" -I Src -Xcompiler "/FS /EHsc"
+    nvcc %CUDA_ARCH% -c "%%f" -o "%OUTPUT_DIR%\%%~nf.obj" -I "%CUDA_PATH%\include" -I Src\Cuda -Xcompiler "/FS /EHsc"
     if errorlevel 1 (
         echo CUDA compilation failed
         exit /b 1
