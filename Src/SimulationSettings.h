@@ -42,7 +42,7 @@ struct SimulationSettings
     I32 max_lifespan = 60*60*lifetime_multiplication_factor;
 
     // Current phase settings
-    GamePhase current_phase = GamePhase_EditorScreen;
+    GamePhase current_phase = GamePhase_SimulationScreen;
 };
 
 inline SimulationSettings global_settings;
