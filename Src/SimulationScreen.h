@@ -1,13 +1,11 @@
 #pragma once
 
-#include "World.h"
 #include "Mesh2D.h"
 #include "Shader.h"
 #include "Window.h"
 #include "SimulationSettings.h"
 #include "ThreadPool.h"
 #include "Texture.h"
-#include "Agent.h"
 
 struct SimulationScreen
 {

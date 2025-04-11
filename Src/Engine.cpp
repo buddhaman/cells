@@ -12,48 +12,33 @@
 #include "InputHandler.h"
 #include "Linalg.h"
 #include "Noise.h"
-#include "Genome.h"
 #include "TMath.h"
 #include "TString.h"
 #include "Memory.h"
 #include "Mesh2D.h"
-#include "ParticleSystem.h"
 #include "Shader.h"
 #include "Texture.h"
 #include "Renderer.h"
-#include "Entity.h"
-#include "Skeleton.h"
 #include "Brain.h"
-#include "Agent.h"
-#include "Plant.h"
 #include "SimulationScreen.h"
-#include "SimulationSettings.h"
 #include "ThreadPool.h"
-#include "EditorScreen.h"
 
 #include "Brain.cpp"
-#include "Agent.cpp"
-#include "Plant.cpp"
 #include "Array.h"
 #include "Camera2D.cpp"
 #include "TiltCamera.cpp"
 #include "DebugInfo.cpp"
 #include "InputHandler.cpp"
 #include "Linalg.cpp"
-#include "Genome.cpp"
 #include "Memory.cpp"
 #include "Mesh2D.cpp"
-#include "ParticleSystem.cpp"
 #include "Shader.cpp"
 #include "Texture.cpp"
 #include "Renderer.cpp"
 #include "SimulationScreen.cpp"
-#include "Skeleton.cpp"
 #include "SimulationSettings.h"
 #include "TimVectorMath.cpp"
 #include "Window.cpp"
-#include "World.cpp"
-#include "EditorScreen.cpp"
 
 #include <direct.h>  
 
@@ -108,9 +93,6 @@ int main(int argc, char** argv)
     SimulationScreen screen;
     InitSimulationScreen(&screen);
 
-    EditorScreen editor;
-    InitEditorScreen(&editor);
-
     float dt = 1.0f / 60.0f; // Time step
 
     while (window->running) 
@@ -124,11 +106,6 @@ int main(int argc, char** argv)
             case GamePhase_SimulationScreen: 
             {
                 UpdateSimulationScreen(&screen, window);
-            } break;
-
-            case GamePhase_EditorScreen: 
-            {
-                UpdateEditorScreen(&editor, window);
             } break;
         }
         WindowEnd(window);
