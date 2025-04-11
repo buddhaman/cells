@@ -14,14 +14,12 @@ struct SimulationScreen
     Mesh2D dynamic_mesh;
 
     R32 extra_selection_radius = 1.0f;
-    Agent* hovered_agent = nullptr;
-    Agent* selected_agent = nullptr;
-
     MemoryArena* screen_arena;
     MemoryArena* world_arena;
 
     Camera2D cam;
-    Shader shader;
+
+    Renderer* renderer;
 
     DynamicArray<R32> update_times;
 
@@ -29,11 +27,6 @@ struct SimulationScreen
     int updates_per_frame = 1;
     R32 time = 0.0f;
 
-    ColorOverlay overlay = ColorOverlay_AgentType;
-
-    TextureAtlas* atlas;  
-    AtlasRegion* square;
-    
     SimulationScreen() : update_times(120) {} 
 };
 

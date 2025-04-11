@@ -11,33 +11,6 @@
 
 #include "Renderer.h"
 
-static void
-DoScreenWorldRender(SimulationScreen* screen, Window* window)
-{
-    Shader* shader = &screen->shader;
-    Mesh2D* mesh = &screen->dynamic_mesh;
-    Camera2D* cam = &screen->cam;
-
-    UseShader(&screen->shader);
-    glBindTexture(GL_TEXTURE_2D, screen->atlas->handle);
-    UpdateCamera(cam, window->width, window->height);
-    SetTransform(shader, &cam->transform.m[0][0]);
-
-    BufferData(mesh, GL_DYNAMIC_DRAW);
-    Draw(mesh);
-    Clear(mesh);
-}
-
-static void
-DoDebugInfo(SimulationScreen* screen, Window* window)
-{
-    ImGui::Text("FPS: %.0f", window->fps);
-    ImGui::Text("Update: %.2f millis", window->update_millis);
-    // ImGui::Text("Camera scale: %.2f", screen->renderer->cam.scale);
-    // ImGui::Text("Camera bounds pos: %.2f %.2f", screen->renderer->cam.bounds.pos.x, screen->renderer->cam.bounds.pos.y);
-    // ImGui::Text("Camera bounds dim: %.2f %.2f", screen->renderer->cam.bounds.dims.x, screen->renderer->cam.bounds.dims.y);
-}
-
 void
 DoStatisticsWindow(SimulationScreen* screen)
 {
@@ -52,6 +25,17 @@ DoStatisticsWindow(SimulationScreen* screen)
         ImPlot::PlotBars("Update time", screen->update_times.data, (int)screen->update_times.size, 1);
         ImPlot::EndPlot();
     }
+}
+
+static void
+DoDebugInfo(SimulationScreen* screen, Window* window)
+{
+    ImGui::Text("FPS: %.0f", window->fps);
+    ImGui::Text("Update: %.2f millis", window->update_millis);
+    // ImGui::Text("Camera scale: %.2f", screen->renderer->cam.scale);
+    // ImGui::Text("Camera bounds pos: %.2f %.2f", screen->renderer->cam.bounds.pos.x, screen->renderer->cam.bounds.pos.y);
+    // ImGui::Text("Camera bounds dim: %.2f %.2f", screen->renderer->cam.bounds.dims.x, screen->renderer->cam.bounds.dims.y);
+    DoStatisticsWindow(screen);
 }
 
 int
@@ -73,18 +57,13 @@ UpdateSimulationScreen(SimulationScreen* screen, Window* window)
 
     // Do verlet integration.
 
-    // Do some test rendering
-    Mesh2D* mesh = &screen->dynamic_mesh;
-    UseShader(&screen->shader);
-    glBindTexture(GL_TEXTURE_2D, screen->atlas->handle);
-    UpdateCamera(cam, window->width, window->height);
-    SetTransform(&screen->shader, &cam->transform.m[0][0]);
+    Renderer* renderer = screen->renderer;
 
-    PushLine(mesh, V2(0,0), V2(102,100), 4.0f, V2(0,0), V2(1,1), Color_White);
+    RenderLine(renderer, V2(0,0), V2(102,100), 4.0f, Color_White);
+    RenderLine(renderer, V2(200,200), V2(102,100), 2.0f, Color_White);
+    RenderLine(renderer, V2(0,-29), V2(30,100), 4.0f, Color_Aqua);
 
-    BufferData(mesh, GL_DYNAMIC_DRAW);
-    Draw(mesh);
-    Clear(mesh);
+    Render(renderer, cam, window->width, window->height);
 
     return 0;
 }
@@ -92,7 +71,7 @@ UpdateSimulationScreen(SimulationScreen* screen, Window* window)
 void
 InitSimulationScreen(SimulationScreen* screen)
 {
-    screen->world_arena = CreateMemoryArena(GigaBytes(1));
+    //screen->world_arena = CreateMemoryArena(GigaBytes(1));
     screen->screen_arena = CreateMemoryArena(MegaBytes(32));
 
     screen->cam.pos = V2(0,0);
@@ -100,8 +79,5 @@ InitSimulationScreen(SimulationScreen* screen)
 
     screen->update_times.FillAndSetValue(0);
 
-    // TODO: This is the actual renderer. Keep this.
-    screen->shader = CreateShader();
-    screen->atlas = MakeDefaultTexture(screen->screen_arena, 511);
-    screen->square = &screen->atlas->regions[1];
+    screen->renderer = CreateRenderer(screen->screen_arena);
 }
