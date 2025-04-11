@@ -56,12 +56,15 @@ UpdateSimulationScreen(SimulationScreen* screen, Window* window)
     ImGui::End();
 
     // Do verlet integration.
+    UpdateWorld(screen->world);
 
     Renderer* renderer = screen->renderer;
 
-    RenderLine(renderer, V2(0,0), V2(102,100), 4.0f, Color_White);
-    RenderLine(renderer, V2(200,200), V2(102,100), 2.0f, Color_White);
-    RenderLine(renderer, V2(0,-29), V2(30,100), 4.0f, Color_Aqua);
+    // RenderLine(renderer, V2(0,0), V2(102,100), 4.0f, Color_White);
+    // RenderLine(renderer, V2(200,200), V2(102,100), 2.0f, Color_White);
+    // RenderLine(renderer, V2(0,-29), V2(30,100), 4.0f, Color_Aqua);
+
+    RenderWorld(screen->world, renderer);
 
     Render(renderer, cam, window->width, window->height);
 
@@ -76,6 +79,9 @@ InitSimulationScreen(SimulationScreen* screen)
 
     screen->cam.pos = V2(0,0);
     screen->cam.scale = 1.0f;
+
+    screen->world = PushNewStruct(screen->screen_arena, World);
+    InitWorld(screen->world, 1000);
 
     screen->update_times.FillAndSetValue(0);
 

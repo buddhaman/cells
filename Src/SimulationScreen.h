@@ -6,6 +6,7 @@
 #include "SimulationSettings.h"
 #include "ThreadPool.h"
 #include "Texture.h"
+#include "World.h"
 
 struct SimulationScreen
 {
@@ -24,6 +25,8 @@ struct SimulationScreen
     bool isPaused = false;
     int updates_per_frame = 1;
     R32 time = 0.0f;
+
+    World* world;
 
     SimulationScreen() : update_times(120) {} 
 };

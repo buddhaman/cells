@@ -39,7 +39,7 @@
 #include "SimulationSettings.h"
 #include "TimVectorMath.cpp"
 #include "Window.cpp"
-
+#include "World.cpp"
 #include <direct.h>  
 
 static void
@@ -66,24 +66,10 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    // Test Verlet integration
-    const int num_particles = 1000;
-    VerletParticle* particles;
-    cudaMallocManaged(&particles, num_particles * sizeof(VerletParticle));
-    
-    // Initialize particles
-    for (int i = 0; i < num_particles; i++) {
-        particles[i].position = { (float)rand() / RAND_MAX * 2.0f - 1.0f, 
-                                (float)rand() / RAND_MAX * 2.0f - 1.0f };
-        particles[i].old_position = particles[i].position;
-        particles[i].acceleration = { 0.0f, -9.8f }; // Gravity
-    }
-
 #undef CreateWindow
     Window* window = CreateWindow(1280, 720);
     if(!window) 
     {
-        cudaFree(particles);
         return -1;
     }
     window->fps = 60;
@@ -93,13 +79,9 @@ int main(int argc, char** argv)
     SimulationScreen screen;
     InitSimulationScreen(&screen);
 
-    float dt = 1.0f / 60.0f; // Time step
-
     while (window->running) 
     {
         WindowBegin(window);
-        
-        VerletIntegration(particles, num_particles, dt);
         
         switch(global_settings.current_phase)
         {
@@ -111,8 +93,6 @@ int main(int argc, char** argv)
         WindowEnd(window);
     }
 
-    // Cleanup
-    cudaFree(particles);
     DestroyWindow(window);
 
     return 0;
