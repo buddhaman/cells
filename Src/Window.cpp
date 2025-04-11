@@ -109,7 +109,7 @@ WindowBegin(Window* window)
     window->frame_start_time = SDL_GetPerformanceCounter();
 
     HandleInput(window);
-    U32 color = HexToColor(0xD2B48CFF);
+    U32 color = HexToColor(0x1A1A1AFF);  // Dark gray background
     Vec4 bg_color = ColorToVec4(color);
 
     // Clear the screen

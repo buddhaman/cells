@@ -1,0 +1,14 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Style
+- **Brace style**: *Allman* (opening brace on a new line)  
+- **Variable naming**: *snake_case* for local and member variables  
+- **Function naming**: *PascalCase* (`CreateWindow`, `UpdateSimulationScreen`)  
+- **Type naming**: *PascalCase* (`Window`, `SimulationScreen`)  
+- **Macro constants**: *UPPER_SNAKE_CASE* (`#undef CreateWindow`)  
+- **Manual memory and lifecycle management**  
+- **No namespaces** – flat structure  
+

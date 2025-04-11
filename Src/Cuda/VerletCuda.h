@@ -6,10 +6,6 @@
 void VerletSimulationStep(
     VerletParticle* particles, 
     int num_particles,
-    VerletConnection* connections, 
-    int num_connections,
-    BoundaryConstraint* boundaries, 
-    int num_boundaries,
     float dt, 
     float gravity,
     int solver_iterations
@@ -29,13 +25,6 @@ void VerletIntegration(
     float dt
 );
 
-// Solve constraints between particles
-void SolveConstraints(
-    VerletParticle* particles, 
-    int num_particles,
-    VerletConnection* connections, 
-    int num_connections,
-    BoundaryConstraint* boundaries, 
-    int num_boundaries,
-    int solver_iterations
-); 
+void UpdateVerletParticles(VerletParticle* particles, int num_particles);
+void VerletSimulationStep(VerletParticle* particles, int num_particles);
+                         

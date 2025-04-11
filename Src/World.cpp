@@ -1,42 +1,41 @@
 #include "World.h"
-
+#include "Cuda/VerletCuda.h"
 #include <cstdlib>
 
 bool InitWorld(World* world, int num_particles) 
 {
     world->num_particles = num_particles;
-    world->initialized = false;
 
-    // Allocate CUDA managed memory for particles
     cudaError_t cuda_status = cudaMallocManaged(&world->particles, num_particles * sizeof(VerletParticle));
     if (cuda_status != cudaSuccess) {
         return false;
     }
     
-    // Initialize particles with random positions
-    for (int i = 0; i < num_particles; i++) {
-        // in a cube of 100x100, randomize the position .
-        world->particles[i].position = { (float)rand() / RAND_MAX * 100.0f - 50.0f, 
-                                       (float)rand() / RAND_MAX * 100.0f - 50.0f };
-        // Give random impulse to the particles by moving old_position.
-        world->particles[i].old_position = world->particles[i].position;
-        world->particles[i].old_position.x += (float)rand() / RAND_MAX * 0.1f - 0.05f;
-        world->particles[i].old_position.y += (float)rand() / RAND_MAX * 0.1f - 0.05f;
-        //world->particles[i].acceleration = { 0.0f, -9.8f }; // Gravity
+    // Initialize particles in a 100x100 square with random impulses
+    for (int i = 0; i < num_particles; i++) 
+    {
+        // Random positions within 100x100 square
+        float x = ((float)rand() / RAND_MAX) * 100.0f;
+        float y = ((float)rand() / RAND_MAX) * 100.0f;
+        
+        // Random impulse direction and magnitude
+        float impulse_x = ((float)rand() / RAND_MAX) * 2.0f - 1.0f;
+        float impulse_y = ((float)rand() / RAND_MAX) * 2.0f - 1.0f;
+        
+        // Set current position
+        world->particles[i].position = make_float2(x, y);
+        // Set old position to create initial velocity from impulse
+        world->particles[i].old_position = make_float2(x - impulse_x, y - impulse_y);
+        world->particles[i].radius = 0.01f;
+        world->particles[i].is_static = 0;
     }
 
-    world->initialized = true;
     return true;
 }
 
-void UpdateWorld(World* world)
+void UpdateWorld(World* world) 
 {
-    if (!world->initialized) return;
-
-    R32 dt = 1.0f/60.0f;
-
-    VerletIntegration(world->particles, world->num_particles, dt);
-    cudaDeviceSynchronize(); // Ensure GPU computations are complete
+    UpdateVerletParticles(world->particles, world->num_particles);
 }
 
 void RenderWorld(World* world, Renderer* renderer)
@@ -55,5 +54,4 @@ void DestroyWorld(World* world)
         world->particles = nullptr;
     }
     world->num_particles = 0;
-    world->initialized = false;
 }

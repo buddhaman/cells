@@ -1,11 +1,12 @@
 #pragma once
 
 #include <cuda_runtime.h>
-#include "Cuda/VerletCuda.h"
+#include "Cuda/VerletParticle.h"
 
 #include "AnymUtil.h"
 
-struct World {
+struct World 
+{
     VerletParticle* particles;
     int num_particles;
     bool initialized;
