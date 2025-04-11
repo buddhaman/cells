@@ -81,7 +81,7 @@ InitSimulationScreen(SimulationScreen* screen)
     screen->cam.scale = 1.0f;
 
     screen->world = PushNewStruct(screen->screen_arena, World);
-    InitWorld(screen->world, 1000);
+    InitWorld(screen->world, 100_000);
 
     screen->update_times.FillAndSetValue(0);
 
