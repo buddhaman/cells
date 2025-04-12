@@ -21,8 +21,8 @@ bool InitWorld(World* world)
     cuda_world->constraints = CreateArray<VerletConstraint>(cuda_arena, max_particles*2);
     
     // Initialize particles in a true triangular lattice
-    int grid_width = 15;  
-    int grid_height = 15; 
+    int grid_width = 20;
+    int grid_height = 3;
     float spacing = 40.0f; // The distance between any two connected particles
 
     // Calculate distance between rows for proper equilateral triangles
@@ -144,8 +144,8 @@ void UpdateWorld(World* world)
     for(int i = 0; i < cuda_world->constraints.size; i++)
     {
         R32 t = (R32)i / 100.0f;
-        R32 amplitude = 4.0f;
-        R32 sine_wave = rest_length + amplitude * sinf(time * PI_R32*2 + i*.14212314f);
+        R32 amplitude = 10.0f;
+        R32 sine_wave = rest_length + amplitude * sinf(time * PI_R32*2 + i*.0514212314f);
         cuda_world->constraints.data[i].rest_length = sine_wave;
     }
     for(int i = 0; i < cuda_world->particles.size; i++)

@@ -24,25 +24,34 @@ DoProfilerWindow(SimulationScreen* screen)
         screen->world->cuda_world->particles.data[10000].position.y -= 20.0f;
     }
     
-    ImGui::Columns(4, "profiler_columns");
-    ImGui::SetColumnWidth(0, 200);
-    ImGui::Text("Section"); ImGui::NextColumn();
-    ImGui::Text("Avg (ms)"); ImGui::NextColumn();
-    ImGui::Text("Min (ms)"); ImGui::NextColumn();
-    ImGui::Text("Max (ms)"); ImGui::NextColumn();
-    ImGui::Separator();
-    
-    // Just iterate directly over the map elements
-    for (auto it = ProfileScope::map.begin(); it != ProfileScope::map.end(); ++it)
+    if (ImGui::BeginTable("ProfilerTable", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
     {
-        ProfilerMetric* metric = it->second;
-        ImGui::Text("%s", metric->name); ImGui::NextColumn();
-        ImGui::Text("%.2f", (float)metric->samples.GetAverage()); ImGui::NextColumn();
-        ImGui::Text("%.2f", (float)metric->samples.GetMin()); ImGui::NextColumn();
-        ImGui::Text("%.2f", (float)metric->samples.GetMax()); ImGui::NextColumn();
+        ImGui::TableSetupColumn("Section", ImGuiTableColumnFlags_WidthFixed, 200.0f);
+        ImGui::TableSetupColumn("Avg (ms)");
+        ImGui::TableSetupColumn("Min (ms)");
+        ImGui::TableSetupColumn("Max (ms)");
+        ImGui::TableHeadersRow();
+        
+        for (auto it = ProfileScope::map.begin(); it != ProfileScope::map.end(); ++it)
+        {
+            ImGui::TableNextRow();
+            ProfilerMetric* metric = it->second;
+            
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("%s", metric->name);
+            
+            ImGui::TableSetColumnIndex(1);
+            ImGui::Text("%.2f", (float)metric->samples.GetAverage());
+            
+            ImGui::TableSetColumnIndex(2);
+            ImGui::Text("%.2f", (float)metric->samples.GetMin());
+            
+            ImGui::TableSetColumnIndex(3);
+            ImGui::Text("%.2f", (float)metric->samples.GetMax());
+        }
+        
+        ImGui::EndTable();
     }
-    
-    ImGui::Columns(1);
 }
 
 void
@@ -59,7 +68,6 @@ DoStatisticsWindow(SimulationScreen* screen)
         ImPlot::PlotBars("Update time", screen->update_times.data, (int)screen->update_times.size, 1);
         ImPlot::EndPlot();
     }
-
 }
 
 static void
@@ -100,12 +108,12 @@ UpdateSimulationScreen(SimulationScreen* screen, Window* window)
     Renderer* renderer = screen->renderer;
 
     {
-        PROFILE_SCOPE(" world render");
+        PROFILE_SCOPE("world render");
         RenderWorld(screen->world, renderer);
     }
 
     {
-        PROFILE_SCOPE("renderer update");
+        PROFILE_SCOPE("main renderer update");
         Render(renderer, cam, window->width, window->height);
     }
 
