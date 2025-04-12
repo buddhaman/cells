@@ -65,8 +65,8 @@ bool InitWorld(World* world)
     }
 
     // add random impulse to first particle
-    cuda_world->particles.data[0].position.x += 0.1f;
-    cuda_world->particles.data[0].position.y += 0.1f;
+    cuda_world->particles.data[0].position.x += 21.1f;
+    cuda_world->particles.data[0].position.y += 12.1f;
 
     return true;
 }

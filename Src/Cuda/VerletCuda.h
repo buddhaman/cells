@@ -9,6 +9,7 @@ struct VerletParticle
     float radius;       
     float mass;        
     int is_static;       
+    float2 correction_accumulator;
 };
 
 struct VerletConstraint 
@@ -17,7 +18,6 @@ struct VerletConstraint
     VerletParticle* particle2;
     float rest_length;
     float stiffness;
-    float2 correction;
 };
 
 struct CudaWorld
