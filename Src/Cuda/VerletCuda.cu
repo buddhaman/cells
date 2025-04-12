@@ -68,10 +68,7 @@ __global__ void UpdatePositionsKernel(CudaWorld* cuda_world)
     // Store current position
     float2 temp = p->position;
     
-    // Apply a small damping factor (0.99) to prevent energy build-up
-    float2 velocity = (p->position - p->old_position) * 0.99f;
-    
-    // Verlet integration with damping
+    float2 velocity = (p->position - p->old_position) * 0.94f;
     p->position = p->position + velocity;
     p->old_position = temp;
 }
@@ -98,13 +95,24 @@ __global__ void UpdateConstraintsKernel(CudaWorld* cuda_world)
     if (dist < 0.0001f)
         return;
         
-    float error = (dist - c->rest_length) / dist;
-    
-    // Use a more conservative correction with relaxation factor
-    float relaxation = 0.5f; // Relaxation factor (0.1-1.0)
-    float2 correction = delta * error * c->stiffness * relaxation;
+    //
+    // static inline void
+    // VerletSolve(Verlet3Constraint* constraint)
+    // {
+    //     Vec3 delta = constraint->v1->pos - constraint->v0->pos;
+    //     float distance = V3Len(delta);
 
-    // Apply correction respecting static flags
+    //     if (distance == 0.0f) return;
+
+    //     float correction = (distance - constraint->r) / distance;
+    //     Vec3 correction_vector = delta * 0.5f * correction;
+    //     constraint->v0->pos += correction_vector; 
+    //     constraint->v1->pos -= correction_vector;
+    // }
+    // Calculate the error as a ratio of current length to rest length
+    float error = (dist - c->rest_length) / (dist);
+    float2 correction = delta * error * c->stiffness * 0.5f;
+
     if (!p1->is_static) p1->position += correction;
     if (!p2->is_static) p2->position -= correction;
 }
@@ -119,7 +127,7 @@ void UpdateVerletParticles(CudaWorld* cuda_world)
     cudaDeviceSynchronize();
 
     // Solve constraints multiple times for stability
-    const int solver_iterations = 5; // Increase for more stability, decrease for performance
+    const int solver_iterations = 10; // Increase for more stability, decrease for performance
     const int constraint_block_size = 256;
     const int num_constraint_blocks = (cuda_world->constraints.size + constraint_block_size - 1) / constraint_block_size;
     

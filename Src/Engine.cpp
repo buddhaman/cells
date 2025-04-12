@@ -67,7 +67,7 @@ int main(int argc, char** argv)
     }
 
 #undef CreateWindow
-    Window* window = CreateWindow(1280, 720);
+    Window* window = CreateWindow(1800, 900);
     if(!window) 
     {
         return -1;

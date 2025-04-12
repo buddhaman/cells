@@ -21,8 +21,8 @@ bool InitWorld(World* world)
     cuda_world->constraints = CreateArray<VerletConstraint>(cuda_arena, max_particles*2);
     
     // Initialize particles in a 100x100 uniform grid and connect them with constraints
-    int grid_size = 160; 
-    float spacing = 5.0f;
+    int grid_size = 40; 
+    float spacing = 10.0f;
     
     // Create particles in a grid
     for (int y = 0; y < grid_size; y++) {
@@ -50,7 +50,7 @@ bool InitWorld(World* world)
                 constraint->particle1 = current;
                 constraint->particle2 = &cuda_world->particles.data[current_idx + 1];
                 constraint->rest_length = spacing;
-                constraint->stiffness = 0.5f;
+                constraint->stiffness = 1.0f;
             }
             
             // Connect to bottom neighbor
@@ -79,6 +79,14 @@ void UpdateWorld(World* world)
 
 void RenderWorld(World* world, Renderer* renderer)
 {
+    // Render constraints
+    for(VerletConstraint& constraint : world->cuda_world->constraints)
+    {
+        Vec2 pos1 = V2(constraint.particle1->position.x, constraint.particle1->position.y);
+        Vec2 pos2 = V2(constraint.particle2->position.x, constraint.particle2->position.y);
+        RenderLine(renderer, pos1, pos2, 1.0f, Color_White);
+    }
+
     for(VerletParticle& particle : world->cuda_world->particles)
     {
         Vec2 pos = V2(particle.position.x, particle.position.y);
