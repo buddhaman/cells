@@ -138,7 +138,6 @@ void UpdateWorld(World* world)
     static R32 time = 0.0f;
     time += 0.01f;
 
-    // For the first 100 constraints, change the rest_length to sine wave centered at 10.0f
     // Each next contraint a little out of phase
     R32 rest_length = 40.0f;
 #if 1
@@ -151,15 +150,12 @@ void UpdateWorld(World* world)
     }
     for(int i = 0; i < cuda_world->particles.size; i++)
     {
-        // friction is between 0.9 and 1.0 but leaning towards 1.0 by taking the sine wave to the power of 2
+        // Set friction to either 0.99 or 0.1 based on sine wave threshold
         R32 t = (R32)i / 100.0f;
-        R32 amplitude = 0.5f;
-        R32 sine_wave = sinf(time * PI_R32*2 + i*.14212314f+0.25f);
-        R32 friction = 1.0f - powf(sine_wave, 4.0f)*amplitude;
-        cuda_world->particles.data[i].friction = friction;
+        R32 sine_wave = sinf(time * PI_R32*2 + i*.14212314f);
+        cuda_world->particles.data[i].friction = (sine_wave > 0.0f) ? 0.99f : 0.1f;
     }
 #endif
-
 
     UpdateVerletParticles(cuda_world);
 }
@@ -176,13 +172,13 @@ void RenderWorld(World* world, Renderer* renderer)
         R32 stretch_diff = constraint.rest_length - current_length;
         
         // Color based on stretch difference using HSV color space
-        R32 factor = 1.0f;
+        R32 factor = 0.5f;
         R32 t = Clamp(-1.0f, stretch_diff*factor, 1.0f);
         R32 hue = Lerp((t + 1.0f) * 0.5f, 240.0f, 0.0f);
         R32 saturation = 1.0f;
         R32 value = 1.0f;
         U32 color = HSVAToRGBA(hue, saturation, value, 1.0f);
-        RenderLine(renderer, pos1, pos2, 2.0f, color);
+        RenderLine(renderer, pos1, pos2, 3.0f, color);
     }
 
     for(VerletParticle& particle : world->cuda_world->particles)
@@ -193,7 +189,7 @@ void RenderWorld(World* world, Renderer* renderer)
         R32 value = t;
         U32 color = Vec4ToColor(value, value, value, 1.0f);
         Vec2 pos = V2(particle.position.x, particle.position.y);
-        RenderCircle(renderer, pos, particle.radius*2.0f, color);
+        RenderCircle(renderer, pos, particle.radius*3.0f, color);
     }
 }
 
