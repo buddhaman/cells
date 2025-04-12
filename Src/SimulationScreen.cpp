@@ -109,7 +109,7 @@ InitSimulationScreen(SimulationScreen* screen)
     //screen->world_arena = CreateMemoryArena(GigaBytes(1));
     screen->screen_arena = CreateMemoryArena(MegaBytes(32));
 
-    screen->cam.pos = V2(0,0);
+    screen->cam.pos = V2(400,400);
     screen->cam.scale = 1.0f;
 
     screen->world = PushNewStruct(screen->screen_arena, World);

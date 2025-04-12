@@ -68,8 +68,11 @@ __global__ void UpdatePositionsKernel(CudaWorld* cuda_world)
     // Store current position
     float2 temp = p->position;
     
-    // Verlet integration (no acceleration, just inertia)
-    p->position = p->position + (p->position - p->old_position);
+    // Apply a small damping factor (0.99) to prevent energy build-up
+    float2 velocity = (p->position - p->old_position) * 0.99f;
+    
+    // Verlet integration with damping
+    p->position = p->position + velocity;
     p->old_position = temp;
 }
 
@@ -84,13 +87,26 @@ __global__ void UpdateConstraintsKernel(CudaWorld* cuda_world)
     VerletParticle* p1 = c->particle1;
     VerletParticle* p2 = c->particle2;
 
+    // Skip if both particles are static
+    if (p1->is_static && p2->is_static)
+        return;
+
     float2 delta = p2->position - p1->position;
     float dist = Length(delta);
+    
+    // Avoid division by zero
+    if (dist < 0.0001f)
+        return;
+        
     float error = (dist - c->rest_length) / dist;
-    float2 correction = delta * error * c->stiffness;
+    
+    // Use a more conservative correction with relaxation factor
+    float relaxation = 0.5f; // Relaxation factor (0.1-1.0)
+    float2 correction = delta * error * c->stiffness * relaxation;
 
-    p1->position += correction;
-    p2->position -= correction;
+    // Apply correction respecting static flags
+    if (!p1->is_static) p1->position += correction;
+    if (!p2->is_static) p2->position -= correction;
 }
 
 void UpdateVerletParticles(CudaWorld* cuda_world) 
@@ -102,12 +118,13 @@ void UpdateVerletParticles(CudaWorld* cuda_world)
     UpdatePositionsKernel<<<num_blocks, block_size>>>(cuda_world);
     cudaDeviceSynchronize();
 
+    // Solve constraints multiple times for stability
+    const int solver_iterations = 5; // Increase for more stability, decrease for performance
     const int constraint_block_size = 256;
     const int num_constraint_blocks = (cuda_world->constraints.size + constraint_block_size - 1) / constraint_block_size;
-    UpdateConstraintsKernel<<<num_constraint_blocks, constraint_block_size>>>(cuda_world);
-    cudaDeviceSynchronize();
     
-    // Solve collisions
-    // SolveCollisionsKernel<<<num_blocks, block_size>>>(particles, num_particles);
-    // cudaDeviceSynchronize();
+    for (int i = 0; i < solver_iterations; i++) {
+        UpdateConstraintsKernel<<<num_constraint_blocks, constraint_block_size>>>(cuda_world);
+        cudaDeviceSynchronize();
+    }
 }

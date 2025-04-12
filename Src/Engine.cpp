@@ -94,6 +94,7 @@ int main(int argc, char** argv)
     }
 
     DestroyWindow(window);
+    DestroyWorld(screen.world);
 
     return 0;
 }
