@@ -73,7 +73,8 @@ __global__ void UpdatePositionsKernel(CudaWorld* cuda_world)
     p->old_position = temp;
 }
 
-__global__ void UpdateConstraintsKernel(CudaWorld* cuda_world) 
+// First pass: Calculate constraint corrections
+__global__ void CalculateConstraintCorrectionsKernel(CudaWorld* cuda_world) 
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     Array<VerletConstraint> constraints = cuda_world->constraints;
@@ -92,29 +93,34 @@ __global__ void UpdateConstraintsKernel(CudaWorld* cuda_world)
     float dist = Length(delta);
     
     // Avoid division by zero
-    if (dist < 0.0001f)
+    if (dist < 0.0001f) {
+        c->correction = make_float2(0.0f, 0.0f);
         return;
+    }
         
-    //
-    // static inline void
-    // VerletSolve(Verlet3Constraint* constraint)
-    // {
-    //     Vec3 delta = constraint->v1->pos - constraint->v0->pos;
-    //     float distance = V3Len(delta);
-
-    //     if (distance == 0.0f) return;
-
-    //     float correction = (distance - constraint->r) / distance;
-    //     Vec3 correction_vector = delta * 0.5f * correction;
-    //     constraint->v0->pos += correction_vector; 
-    //     constraint->v1->pos -= correction_vector;
-    // }
     // Calculate the error as a ratio of current length to rest length
     float error = (dist - c->rest_length) / (dist);
-    float2 correction = delta * error * c->stiffness * 0.5f;
+    
+    // Store the correction in the constraint
+    c->correction = delta * error * c->stiffness * 0.5f;
+}
 
-    if (!p1->is_static) p1->position += correction;
-    if (!p2->is_static) p2->position -= correction;
+// Second pass: Apply the corrections
+__global__ void ApplyConstraintCorrectionsKernel(CudaWorld* cuda_world) 
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    Array<VerletConstraint> constraints = cuda_world->constraints;
+    if (idx >= constraints.size)
+        return;
+
+    VerletConstraint* c = &constraints.data[idx];
+    
+    // Apply the stored correction
+    if (!c->particle1->is_static)
+        c->particle1->position += c->correction;
+        
+    if (!c->particle2->is_static)
+        c->particle2->position -= c->correction;
 }
 
 void UpdateVerletParticles(CudaWorld* cuda_world) 
@@ -127,12 +133,16 @@ void UpdateVerletParticles(CudaWorld* cuda_world)
     cudaDeviceSynchronize();
 
     // Solve constraints multiple times for stability
-    const int solver_iterations = 10; // Increase for more stability, decrease for performance
+    const int solver_iterations = 1; 
     const int constraint_block_size = 256;
     const int num_constraint_blocks = (cuda_world->constraints.size + constraint_block_size - 1) / constraint_block_size;
     
     for (int i = 0; i < solver_iterations; i++) {
-        UpdateConstraintsKernel<<<num_constraint_blocks, constraint_block_size>>>(cuda_world);
+        // Split into two kernels to avoid race conditions
+        CalculateConstraintCorrectionsKernel<<<num_constraint_blocks, constraint_block_size>>>(cuda_world);
+        cudaDeviceSynchronize();
+        
+        ApplyConstraintCorrectionsKernel<<<num_constraint_blocks, constraint_block_size>>>(cuda_world);
         cudaDeviceSynchronize();
     }
 }

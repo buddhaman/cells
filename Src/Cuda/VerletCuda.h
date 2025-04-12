@@ -17,6 +17,7 @@ struct VerletConstraint
     VerletParticle* particle2;
     float rest_length;
     float stiffness;
+    float2 correction;
 };
 
 struct CudaWorld
