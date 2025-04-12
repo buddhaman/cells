@@ -56,13 +56,14 @@ __device__ float2 normalize(float2 v) {
 }
 
 // CUDA kernel for Verlet integration
-__global__ void UpdatePositionsKernel(VerletParticle* particles, int num_particles) 
+__global__ void UpdatePositionsKernel(CudaWorld* cuda_world) 
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= num_particles || particles[idx].is_static) 
+    Array<VerletParticle> particles = cuda_world->particles;
+    if (idx >= particles.size || particles.data[idx].is_static) 
         return;
 
-    VerletParticle* p = &particles[idx];
+    VerletParticle* p = &particles.data[idx];
     
     // Store current position
     float2 temp = p->position;
@@ -72,51 +73,41 @@ __global__ void UpdatePositionsKernel(VerletParticle* particles, int num_particl
     p->old_position = temp;
 }
 
-__global__ void SolveCollisionsKernel(VerletParticle* particles, int num_particles) 
+__global__ void UpdateConstraintsKernel(CudaWorld* cuda_world) 
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= num_particles || particles[idx].is_static) 
+    Array<VerletConstraint> constraints = cuda_world->constraints;
+    if (idx >= constraints.size)
         return;
-    
-    VerletParticle* p1 = &particles[idx];
-    
-    for (int i = idx + 1; i < num_particles; i++) 
-    {
-        VerletParticle* p2 = &particles[i];
-        if (p2->is_static) 
-            continue;
-        
-        float2 delta = p2->position - p1->position;
-        float dist = Length(delta);
-        
-        float min_dist = p1->radius + p2->radius;
-        if (dist < min_dist && dist > 0.0001f) 
-        {
-            float correction_factor = (min_dist - dist) / dist * 0.5f;
-            float2 correction = delta * correction_factor;
-            
-            if (!p1->is_static) p1->position -= correction;
-            if (!p2->is_static) p2->position += correction;
-        }
-    }
+
+    VerletConstraint* c = &constraints.data[idx];
+    VerletParticle* p1 = c->particle1;
+    VerletParticle* p2 = c->particle2;
+
+    float2 delta = p2->position - p1->position;
+    float dist = Length(delta);
+    float error = (dist - c->rest_length) / dist;
+    float2 correction = delta * error * c->stiffness;
+
+    p1->position += correction;
+    p2->position -= correction;
 }
 
-void UpdateVerletParticles(VerletParticle* particles, int num_particles) 
+void UpdateVerletParticles(CudaWorld* cuda_world) 
 {
     const int block_size = 256;
-    const int num_blocks = (num_particles + block_size - 1) / block_size;
+    const int num_blocks = (cuda_world->particles.size + block_size - 1) / block_size;
     
     // Update positions with fixed timestep
-    UpdatePositionsKernel<<<num_blocks, block_size>>>(particles, num_particles);
+    UpdatePositionsKernel<<<num_blocks, block_size>>>(cuda_world);
+    cudaDeviceSynchronize();
+
+    const int constraint_block_size = 256;
+    const int num_constraint_blocks = (cuda_world->constraints.size + constraint_block_size - 1) / constraint_block_size;
+    UpdateConstraintsKernel<<<num_constraint_blocks, constraint_block_size>>>(cuda_world);
     cudaDeviceSynchronize();
     
     // Solve collisions
     // SolveCollisionsKernel<<<num_blocks, block_size>>>(particles, num_particles);
     // cudaDeviceSynchronize();
 }
-
-// Main simulation step
-void VerletSimulationStep(VerletParticle* particles, int num_particles)
-{
-    UpdateVerletParticles(particles, num_particles);
-} 

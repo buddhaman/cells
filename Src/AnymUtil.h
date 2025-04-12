@@ -192,8 +192,6 @@ HexToColor(U32 hex)
 constexpr U32
 Vec4ToColor(R32 r, R32 g, R32 b, R32 a)
 {
-    U32 hex = 0;
-
     U8 rb = (U8)((int)(r * 255.0f));
     U8 gb = (U8)((int)(g * 255.0f));
     U8 bb = (U8)((int)(b * 255.0f));
@@ -205,8 +203,6 @@ Vec4ToColor(R32 r, R32 g, R32 b, R32 a)
 constexpr U32
 Vec3ToColor(R32 r, R32 g, R32 b)
 {
-    U32 hex = 0;
-
     U8 rb = (U8)((int)(r * 255.0f));
     U8 gb = (U8)((int)(g * 255.0f));
     U8 bb = (U8)((int)(b * 255.0f));

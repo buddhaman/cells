@@ -1,15 +1,11 @@
 #pragma once
 
 #include <cuda_runtime.h>
-#include "Cuda/VerletParticle.h"
 
 #include "AnymUtil.h"
 #include "Memory.h"
-
-struct CudaWorld
-{
-    Array<VerletParticle> particles;
-};
+#include "Array.h"
+#include "Renderer.h"
 
 struct World 
 {

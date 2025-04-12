@@ -14,29 +14,54 @@ bool InitWorld(World* world)
         return false;
     }
 
-    int max_particles = 1000;
+    int max_particles = 100000;
     CudaWorld* cuda_world = world->cuda_world = PushNewStruct(cuda_arena, CudaWorld);
+
     cuda_world->particles = CreateArray<VerletParticle>(cuda_arena, max_particles);
+    cuda_world->constraints = CreateArray<VerletConstraint>(cuda_arena, max_particles*2);
     
-    // Initialize particles in a 100x100 square with random impulses
-    for (int i = 0; i < max_particles; i++) 
-    {
-        // Random positions within 100x100 square
-        float x = ((float)rand() / RAND_MAX) * 100.0f;
-        float y = ((float)rand() / RAND_MAX) * 100.0f;
-        
-        // Random impulse direction and magnitude
-        float impulse_x = ((float)rand() / RAND_MAX) * 2.0f - 1.0f;
-        float impulse_y = ((float)rand() / RAND_MAX) * 2.0f - 1.0f;
-        
-        // Set current position
-        VerletParticle* particle = cuda_world->particles.PushBack();
-        particle->position = make_float2(x, y);
-        // Set old position to create initial velocity from impulse
-        particle->old_position = make_float2(x - impulse_x, y - impulse_y);
-        particle->radius = 1.0f;
-        particle->mass = 1.0f;
-        particle->is_static = 0;
+    // Initialize particles in a 100x100 uniform grid and connect them with constraints
+    int grid_size = 10; 
+    float spacing = 3.0f;
+    
+    // Create particles in a grid
+    for (int y = 0; y < grid_size; y++) {
+        for (int x = 0; x < grid_size; x++) {
+            VerletParticle* particle = cuda_world->particles.PushBack();
+            float px = x * spacing;
+            float py = y * spacing;
+            particle->position = make_float2(px, py);
+            particle->old_position = make_float2(px, py);
+            particle->radius = 1.0f;
+            particle->mass = 1.0f;
+            particle->is_static = 0;
+        }
+    }
+
+    // Connect particles with constraints
+    for (int y = 0; y < grid_size; y++) {
+        for (int x = 0; x < grid_size; x++) {
+            int current_idx = y * grid_size + x;
+            VerletParticle* current = &cuda_world->particles.data[current_idx];
+            
+            // Connect to right neighbor
+            if (x < grid_size - 1) {
+                VerletConstraint* constraint = cuda_world->constraints.PushBack();
+                constraint->particle1 = current;
+                constraint->particle2 = &cuda_world->particles.data[current_idx + 1];
+                constraint->rest_length = spacing;
+                constraint->stiffness = 0.5f;
+            }
+            
+            // Connect to bottom neighbor
+            if (y < grid_size - 1) {
+                VerletConstraint* constraint = cuda_world->constraints.PushBack();
+                constraint->particle1 = current;
+                constraint->particle2 = &cuda_world->particles.data[current_idx + grid_size];
+                constraint->rest_length = spacing;
+                constraint->stiffness = 0.5f;
+            }
+        }
     }
 
     return true;
@@ -45,7 +70,7 @@ bool InitWorld(World* world)
 void UpdateWorld(World* world) 
 {
     CudaWorld* cuda_world = world->cuda_world;
-    UpdateVerletParticles(cuda_world->particles.data, (int)cuda_world->particles.size);
+    UpdateVerletParticles(cuda_world);
 }
 
 void RenderWorld(World* world, Renderer* renderer)
