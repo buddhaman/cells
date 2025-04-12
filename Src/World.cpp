@@ -20,16 +20,24 @@ bool InitWorld(World* world)
     cuda_world->particles = CreateArray<VerletParticle>(cuda_arena, max_particles);
     cuda_world->constraints = CreateArray<VerletConstraint>(cuda_arena, max_particles*2);
     
-    // Initialize particles in a 100x100 uniform grid and connect them with constraints
-    int grid_size = 120;
-    float spacing = 8.0f;
+    // Initialize particles in a triangular (hexagonal) grid
+    int grid_size = 100; // Number of particles in a row
+    float spacing = 8.0f; // Distance between neighboring particles
     
-    // Create particles in a grid
-    for (int y = 0; y < grid_size; y++) {
-        for (int x = 0; x < grid_size; x++) {
+    // For a triangular lattice:
+    // - Every other row is offset by half spacing
+    // - Vertical distance between rows is sqrt(3)/2 * spacing
+    float row_height = sqrtf(3.0f) * 0.5f * spacing;
+    
+    // Create particles in a triangular grid
+    for (int y = 0; y < grid_size; y++) 
+    {
+        float row_offset = (y % 2) * 0.5f * spacing; // Offset every other row
+        for (int x = 0; x < grid_size; x++) 
+        {
             VerletParticle* particle = cuda_world->particles.PushBack();
-            float px = x * spacing;
-            float py = y * spacing;
+            float px = x * spacing + row_offset;
+            float py = y * row_height;
             particle->position = make_float2(px, py);
             particle->old_position = make_float2(px, py);
             particle->radius = 1.0f;
@@ -38,53 +46,58 @@ bool InitWorld(World* world)
         }
     }
 
-    // Connect particles with constraints
-    for (int y = 0; y < grid_size; y++) {
-        for (int x = 0; x < grid_size; x++) {
+    // Connect particles with constraints to form triangles
+    for (int y = 0; y < grid_size; y++) 
+    {
+        bool odd_row = y % 2 == 1;
+        for (int x = 0; x < grid_size; x++) 
+        {
             int current_idx = y * grid_size + x;
             VerletParticle* current = &cuda_world->particles.data[current_idx];
             
-            // Connect to right neighbor
-            if (x < grid_size - 1) {
+            // Connect to right neighbor (horizontal constraints)
+            if (x < grid_size - 1) 
+            {
                 VerletConstraint* constraint = cuda_world->constraints.PushBack();
                 constraint->particle1 = current;
                 constraint->particle2 = &cuda_world->particles.data[current_idx + 1];
                 constraint->rest_length = spacing;
-                constraint->stiffness = 1.0f;
+                constraint->stiffness = 0.8f;
             }
             
-            // Connect to bottom neighbor
-            if (y < grid_size - 1) {
-                VerletConstraint* constraint = cuda_world->constraints.PushBack();
-                constraint->particle1 = current;
-                constraint->particle2 = &cuda_world->particles.data[current_idx + grid_size];
-                constraint->rest_length = spacing;
-                constraint->stiffness = 0.5f;
-            }
-
-            // Connect to bottom-right diagonal neighbor
-            if (x < grid_size - 1 && y < grid_size - 1) {
-                VerletConstraint* constraint = cuda_world->constraints.PushBack();
-                constraint->particle1 = current;
-                constraint->particle2 = &cuda_world->particles.data[current_idx + grid_size + 1];
-                constraint->rest_length = spacing * sqrtf(2.0f); // Diagonal length
-                constraint->stiffness = 0.3f;
-            }
-
-            // Connect to bottom-left diagonal neighbor
-            if (x > 0 && y < grid_size - 1) {
-                VerletConstraint* constraint = cuda_world->constraints.PushBack();
-                constraint->particle1 = current;
-                constraint->particle2 = &cuda_world->particles.data[current_idx + grid_size - 1];
-                constraint->rest_length = spacing * sqrtf(2.0f); // Diagonal length
-                constraint->stiffness = 0.3f;
+            // Connect to lower neighbors (forms triangles)
+            if (y < grid_size - 1) 
+            {
+                // In a triangular grid, each point connects to either 2 or 1 particles
+                // in the row below, depending on if it's an odd or even row
+                
+                // Connect to particle directly below (diagonally)
+                int below_idx = (y + 1) * grid_size + x;
+                if (x < grid_size - odd_row) // Adjust for offset rows
+                {
+                    VerletConstraint* constraint = cuda_world->constraints.PushBack();
+                    constraint->particle1 = current;
+                    constraint->particle2 = &cuda_world->particles.data[below_idx];
+                    constraint->rest_length = row_height;
+                    constraint->stiffness = 0.8f;
+                }
+                
+                // Connect to bottom-right neighbor
+                if ((odd_row && x < grid_size - 1) || (!odd_row && x < grid_size - 1))
+                {
+                    VerletConstraint* constraint = cuda_world->constraints.PushBack();
+                    constraint->particle1 = current;
+                    constraint->particle2 = &cuda_world->particles.data[below_idx + 1];
+                    constraint->rest_length = sqrtf(row_height*row_height + (0.5f*spacing)*(0.5f*spacing));
+                    constraint->stiffness = 0.8f;
+                }
             }
         }
     }
 
     // add random impulse to first particle
-    cuda_world->particles.data[0].position.x += 40.0f;
-    cuda_world->particles.data[0].position.y += 1.1f;
+    // cuda_world->particles.data[0].position.x += 40.0f;
+    // cuda_world->particles.data[0].position.y += 1.1f;
 
     return true;
 }
