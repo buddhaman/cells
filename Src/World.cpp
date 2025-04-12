@@ -21,8 +21,8 @@ bool InitWorld(World* world)
     cuda_world->constraints = CreateArray<VerletConstraint>(cuda_arena, max_particles*2);
     
     // Initialize particles in a 100x100 uniform grid and connect them with constraints
-    int grid_size = 80;
-    float spacing = 10.0f;
+    int grid_size = 120;
+    float spacing = 8.0f;
     
     // Create particles in a grid
     for (int y = 0; y < grid_size; y++) {

@@ -13,10 +13,13 @@
 #include "Renderer.h"
 
 static void
-DoProfilerWindow()
+DoProfilerWindow(SimulationScreen* screen)
 {
-    if (ImGui::Button("Reset"))
-        PROFILE_RESET();
+    if (ImGui::Button("Add impulse"))
+    {
+        screen->world->cuda_world->particles.data[0].position.x += 20.0f;
+        screen->world->cuda_world->particles.data[0].position.y += 20.0f;
+    }
     
     ImGui::Columns(4, "profiler_columns");
     ImGui::SetColumnWidth(0, 200);
@@ -62,7 +65,7 @@ DoDebugInfo(SimulationScreen* screen, Window* window)
     ImGui::Text("FPS: %.0f", window->fps);
     ImGui::Text("Update: %.2f millis", window->update_millis);
     DoStatisticsWindow(screen);
-    DoProfilerWindow();
+    DoProfilerWindow(screen);
 }
 
 int
