@@ -2,17 +2,24 @@
 #include "Cuda/VerletCuda.h"
 #include <cstdlib>
 
-bool InitWorld(World* world, int num_particles) 
+bool InitWorld(World* world)
 {
-    world->num_particles = num_particles;
-
-    cudaError_t cuda_status = cudaMallocManaged(&world->particles, num_particles * sizeof(VerletParticle));
-    if (cuda_status != cudaSuccess) {
+    // Make empty arena and fill with gpu memory.
+    MemoryArena* cuda_arena = world->cuda_arena = new MemoryArena();
+    cuda_arena->size = MegaBytes(512);
+    cudaError_t cuda_status = cudaMallocManaged(&cuda_arena->base, cuda_arena->size);
+    if (cuda_status != cudaSuccess) 
+    {
+        printf("Failed to allocate cuda memory: %s\n", cudaGetErrorString(cuda_status));
         return false;
     }
+
+    int max_particles = 1000;
+    CudaWorld* cuda_world = world->cuda_world = PushNewStruct(cuda_arena, CudaWorld);
+    cuda_world->particles = CreateArray<VerletParticle>(cuda_arena, max_particles);
     
     // Initialize particles in a 100x100 square with random impulses
-    for (int i = 0; i < num_particles; i++) 
+    for (int i = 0; i < max_particles; i++) 
     {
         // Random positions within 100x100 square
         float x = ((float)rand() / RAND_MAX) * 100.0f;
@@ -23,11 +30,13 @@ bool InitWorld(World* world, int num_particles)
         float impulse_y = ((float)rand() / RAND_MAX) * 2.0f - 1.0f;
         
         // Set current position
-        world->particles[i].position = make_float2(x, y);
+        VerletParticle* particle = cuda_world->particles.PushBack();
+        particle->position = make_float2(x, y);
         // Set old position to create initial velocity from impulse
-        world->particles[i].old_position = make_float2(x - impulse_x, y - impulse_y);
-        world->particles[i].radius = 0.01f;
-        world->particles[i].is_static = 0;
+        particle->old_position = make_float2(x - impulse_x, y - impulse_y);
+        particle->radius = 1.0f;
+        particle->mass = 1.0f;
+        particle->is_static = 0;
     }
 
     return true;
@@ -35,23 +44,21 @@ bool InitWorld(World* world, int num_particles)
 
 void UpdateWorld(World* world) 
 {
-    UpdateVerletParticles(world->particles, world->num_particles);
+    CudaWorld* cuda_world = world->cuda_world;
+    UpdateVerletParticles(cuda_world->particles.data, (int)cuda_world->particles.size);
 }
 
 void RenderWorld(World* world, Renderer* renderer)
 {
-    for(int i = 0; i < world->num_particles; i++)
+    for(VerletParticle& particle : world->cuda_world->particles)
     {
-        Vec2 pos = V2(world->particles[i].position.x, world->particles[i].position.y);
-        RenderCircle(renderer, pos, 3.0f, Color_White);
+        Vec2 pos = V2(particle.position.x, particle.position.y);
+        RenderCircle(renderer, pos, particle.radius, Color_White);
     }
 }
 
 void DestroyWorld(World* world) 
 {
-    if (world->particles) {
-        cudaFree(world->particles);
-        world->particles = nullptr;
-    }
-    world->num_particles = 0;
+    cudaFree(world->cuda_arena->base);
 }
+

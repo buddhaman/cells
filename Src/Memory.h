@@ -19,9 +19,9 @@ static constexpr U64 GigaBytes(U64 n)
 
 struct MemoryArena
 {
-    U8 *base;
-    I64 used;
-    I64 size;
+    U8 *base = nullptr;
+    I64 used = 0;
+    I64 size = 0;
 };
 
 static inline void*

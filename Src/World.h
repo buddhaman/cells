@@ -4,15 +4,24 @@
 #include "Cuda/VerletParticle.h"
 
 #include "AnymUtil.h"
+#include "Memory.h"
+
+struct CudaWorld
+{
+    Array<VerletParticle> particles;
+};
 
 struct World 
 {
-    VerletParticle* particles;
-    int num_particles;
-    bool initialized;
+    // GPU memory arena.
+    MemoryArena* cuda_arena;
+    CudaWorld* cuda_world;
+
+    // CPU stufff
+    MemoryArena* world_arena;
 };
 
-bool InitWorld(World* world, int num_particles);
+bool InitWorld(World* world);
 void UpdateWorld(World* world);
 void RenderWorld(World* world, Renderer* renderer);
 void DestroyWorld(World* world);
