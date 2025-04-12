@@ -21,13 +21,15 @@ bool InitWorld(World* world)
     cuda_world->constraints = CreateArray<VerletConstraint>(cuda_arena, max_particles*2);
     
     // Initialize particles in a true triangular lattice
-    int grid_width = 10;  // Number of particles in a row
-    int grid_height = 3; // Number of particles in a column
-    float spacing = 10.0f; // Distance between neighboring particles
-    
-    // Calculate row height for equilateral triangles
-    float row_height = spacing * 0.866f; // sqrt(3)/2 * spacing
-    
+    int grid_width = 15;  
+    int grid_height = 15; 
+    float spacing = 40.0f; // The distance between any two connected particles
+
+    // Calculate distance between rows for proper equilateral triangles
+    // In an equilateral triangle with side length 'spacing',
+    // the height is spacing * sin(60°) = spacing * sqrt(3)/2
+    float row_height = spacing * sqrtf(3.0f) / 2.0f;
+
     // Create particles in a triangular grid
     for (int y = 0; y < grid_height; y++) 
     {
@@ -44,7 +46,8 @@ bool InitWorld(World* world)
             
             particle->position = make_float2(px, py);
             particle->old_position = make_float2(px, py);
-            particle->radius = 1.5f;
+            particle->friction = 0.99f;
+            particle->radius = 2.0f;
             particle->mass = 1.0f;
             particle->is_static = 0;
         }
@@ -84,7 +87,7 @@ bool InitWorld(World* world)
                         VerletConstraint* constraint = cuda_world->constraints.PushBack();
                         constraint->particle1 = current;
                         constraint->particle2 = &cuda_world->particles.data[below_row_idx + x];
-                        constraint->rest_length = row_height;
+                        constraint->rest_length = spacing;
                         constraint->stiffness = 0.9f;
                     }
                     
@@ -117,19 +120,13 @@ bool InitWorld(World* world)
                         VerletConstraint* constraint = cuda_world->constraints.PushBack();
                         constraint->particle1 = current;
                         constraint->particle2 = &cuda_world->particles.data[below_row_idx + x];
-                        constraint->rest_length = row_height;
+                        constraint->rest_length = spacing;
                         constraint->stiffness = 0.9f;
                     }
                 }
             }
         }
     }
-
-    // Add an impulse to create a wave effect
-    int center_x = grid_width / 2;
-    int center_y = grid_height / 2;
-    int center_idx = center_y * grid_width + center_x;
-    cuda_world->particles.data[center_idx].position.y += 30.0f;
 
     return true;
 }
@@ -143,13 +140,23 @@ void UpdateWorld(World* world)
 
     // For the first 100 constraints, change the rest_length to sine wave centered at 10.0f
     // Each next contraint a little out of phase
-#if 0
-    for(int i = 0; i < 100; i++)
+    R32 rest_length = 40.0f;
+#if 1
+    for(int i = 0; i < cuda_world->constraints.size; i++)
     {
         R32 t = (R32)i / 100.0f;
-        R32 amplitude = 3.0f;
-        R32 sine_wave = 10.0f + amplitude * sinf(time * PI_R32+i*0.04f);
+        R32 amplitude = 4.0f;
+        R32 sine_wave = rest_length + amplitude * sinf(time * PI_R32*2 + i*.14212314f);
         cuda_world->constraints.data[i].rest_length = sine_wave;
+    }
+    for(int i = 0; i < cuda_world->particles.size; i++)
+    {
+        // friction is between 0.9 and 1.0 but leaning towards 1.0 by taking the sine wave to the power of 2
+        R32 t = (R32)i / 100.0f;
+        R32 amplitude = 0.5f;
+        R32 sine_wave = sinf(time * PI_R32*2 + i*.14212314f+0.25f);
+        R32 friction = 1.0f - powf(sine_wave, 4.0f)*amplitude;
+        cuda_world->particles.data[i].friction = friction;
     }
 #endif
 
@@ -169,18 +176,24 @@ void RenderWorld(World* world, Renderer* renderer)
         R32 stretch_diff = constraint.rest_length - current_length;
         
         // Color based on stretch difference using HSV color space
-        R32 t = Clamp(-1.0f, stretch_diff*16.0f, 1.0f);
+        R32 factor = 1.0f;
+        R32 t = Clamp(-1.0f, stretch_diff*factor, 1.0f);
         R32 hue = Lerp((t + 1.0f) * 0.5f, 240.0f, 0.0f);
         R32 saturation = 1.0f;
         R32 value = 1.0f;
         U32 color = HSVAToRGBA(hue, saturation, value, 1.0f);
-        RenderLine(renderer, pos1, pos2, 1.0f, color);
+        RenderLine(renderer, pos1, pos2, 2.0f, color);
     }
 
     for(VerletParticle& particle : world->cuda_world->particles)
     {
+        // Render color gray to white based on friction:
+        // 0.9 is gray, 1.0 is white
+        R32 t = particle.friction;
+        R32 value = t;
+        U32 color = Vec4ToColor(value, value, value, 1.0f);
         Vec2 pos = V2(particle.position.x, particle.position.y);
-        RenderCircle(renderer, pos, particle.radius, Color_White);
+        RenderCircle(renderer, pos, particle.radius*2.0f, color);
     }
 }
 

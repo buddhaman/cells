@@ -76,6 +76,9 @@ UpdateSimulationScreen(SimulationScreen* screen, Window* window)
 {
     InputHandler* input = &window->input;
     Camera2D* cam = &screen->cam;
+
+    UpdateCameraScrollInput(cam, input);
+    UpdateCameraDragInput(cam, input);
     UpdateCamera(cam, window->width, window->height);
 
     screen->update_times.Shift(-1);

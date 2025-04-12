@@ -68,7 +68,7 @@ __global__ void UpdatePositionsKernel(CudaWorld* cuda_world)
     // Store current position
     float2 temp = p->position;
     
-    float2 velocity = (p->position - p->old_position) * 0.99f;
+    float2 velocity = (p->position - p->old_position) * p->friction;
     p->position = p->position + velocity;
     p->old_position = temp;
     

@@ -10,6 +10,7 @@ struct VerletParticle
     float mass;        
     int is_static;       
     float2 correction_accumulator;
+    float friction;
 };
 
 struct VerletConstraint 
