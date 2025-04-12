@@ -8,8 +8,36 @@
 #include "SimulationScreen.h"
 #include "DebugInfo.h"
 #include "Lucide.h"
+#include "Profiling.h"
 
 #include "Renderer.h"
+
+static void
+DoProfilerWindow()
+{
+    if (ImGui::Button("Reset"))
+        PROFILE_RESET();
+    
+    ImGui::Columns(4, "profiler_columns");
+    ImGui::SetColumnWidth(0, 200);
+    ImGui::Text("Section"); ImGui::NextColumn();
+    ImGui::Text("Avg (ms)"); ImGui::NextColumn();
+    ImGui::Text("Min (ms)"); ImGui::NextColumn();
+    ImGui::Text("Max (ms)"); ImGui::NextColumn();
+    ImGui::Separator();
+    
+    // Just iterate directly over the map elements
+    for (auto it = ProfileScope::map.begin(); it != ProfileScope::map.end(); ++it)
+    {
+        ProfilerMetric* metric = it->second;
+        ImGui::Text("%s", metric->name); ImGui::NextColumn();
+        ImGui::Text("%.2f", (float)metric->samples.GetAverage()); ImGui::NextColumn();
+        ImGui::Text("%.2f", (float)metric->samples.GetMin()); ImGui::NextColumn();
+        ImGui::Text("%.2f", (float)metric->samples.GetMax()); ImGui::NextColumn();
+    }
+    
+    ImGui::Columns(1);
+}
 
 void
 DoStatisticsWindow(SimulationScreen* screen)
@@ -25,6 +53,7 @@ DoStatisticsWindow(SimulationScreen* screen)
         ImPlot::PlotBars("Update time", screen->update_times.data, (int)screen->update_times.size, 1);
         ImPlot::EndPlot();
     }
+
 }
 
 static void
@@ -32,10 +61,8 @@ DoDebugInfo(SimulationScreen* screen, Window* window)
 {
     ImGui::Text("FPS: %.0f", window->fps);
     ImGui::Text("Update: %.2f millis", window->update_millis);
-    // ImGui::Text("Camera scale: %.2f", screen->renderer->cam.scale);
-    // ImGui::Text("Camera bounds pos: %.2f %.2f", screen->renderer->cam.bounds.pos.x, screen->renderer->cam.bounds.pos.y);
-    // ImGui::Text("Camera bounds dim: %.2f %.2f", screen->renderer->cam.bounds.dims.x, screen->renderer->cam.bounds.dims.y);
     DoStatisticsWindow(screen);
+    DoProfilerWindow();
 }
 
 int
@@ -55,18 +82,23 @@ UpdateSimulationScreen(SimulationScreen* screen, Window* window)
     DoDebugInfo(screen, window);
     ImGui::End();
 
-    // Do verlet integration.
-    UpdateWorld(screen->world);
+    {
+        PROFILE_SCOPE("world update");
+        // Do verlet integration.
+        UpdateWorld(screen->world);
+    }
 
     Renderer* renderer = screen->renderer;
 
-    // RenderLine(renderer, V2(0,0), V2(102,100), 4.0f, Color_White);
-    // RenderLine(renderer, V2(200,200), V2(102,100), 2.0f, Color_White);
-    // RenderLine(renderer, V2(0,-29), V2(30,100), 4.0f, Color_Aqua);
+    {
+        PROFILE_SCOPE(" world render");
+        RenderWorld(screen->world, renderer);
+    }
 
-    RenderWorld(screen->world, renderer);
-
-    Render(renderer, cam, window->width, window->height);
+    {
+        PROFILE_SCOPE("renderer update");
+        Render(renderer, cam, window->width, window->height);
+    }
 
     return 0;
 }
@@ -81,7 +113,7 @@ InitSimulationScreen(SimulationScreen* screen)
     screen->cam.scale = 1.0f;
 
     screen->world = PushNewStruct(screen->screen_arena, World);
-    InitWorld(screen->world, 100_000);
+    InitWorld(screen->world, 100000);
 
     screen->update_times.FillAndSetValue(0);
 

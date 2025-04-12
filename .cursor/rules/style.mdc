@@ -9,6 +9,9 @@ alwaysApply: true
 - **Function naming**: *PascalCase* (`CreateWindow`, `UpdateSimulationScreen`)  
 - **Type naming**: *PascalCase* (`Window`, `SimulationScreen`)  
 - **Macro constants**: *UPPER_SNAKE_CASE* (`#undef CreateWindow`)  
+- **Prefer no const**: Const everywhere creates a hassle.
 - **Manual memory and lifecycle management**  
 - **No namespaces** – flat structure  
+- **Structs over classes** – Everything public
+- **Typedefs** – float -> R32, double -> R64, int8_t -> I8, uint8_t -> U8, int16_t -> I16, uint16_t -> U16, int (normal), uint32_t -> U32, int64_t -> I64, uint64_t -> U64
 

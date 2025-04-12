@@ -111,8 +111,8 @@ void UpdateVerletParticles(VerletParticle* particles, int num_particles)
     cudaDeviceSynchronize();
     
     // Solve collisions
-    SolveCollisionsKernel<<<num_blocks, block_size>>>(particles, num_particles);
-    cudaDeviceSynchronize();
+    // SolveCollisionsKernel<<<num_blocks, block_size>>>(particles, num_particles);
+    // cudaDeviceSynchronize();
 }
 
 // Main simulation step
