@@ -102,7 +102,17 @@ void RenderWorld(World* world, Renderer* renderer)
     {
         Vec2 pos1 = V2(constraint.particle1->position.x, constraint.particle1->position.y);
         Vec2 pos2 = V2(constraint.particle2->position.x, constraint.particle2->position.y);
-        RenderLine(renderer, pos1, pos2, 1.0f, Color_White);
+        
+        R32 current_length = V2Len(pos2 - pos1);
+        R32 stretch_diff = constraint.rest_length - current_length;
+        
+        // Color based on stretch difference using HSV color space
+        R32 t = Clamp(-1.0f, stretch_diff*16.0f, 1.0f);
+        R32 hue = Lerp((t + 1.0f) * 0.5f, 240.0f, 0.0f);
+        R32 saturation = 1.0f;
+        R32 value = 1.0f;
+        U32 color = HSVAToRGBA(hue, saturation, value, 1.0f);
+        RenderLine(renderer, pos1, pos2, 1.0f, color);
     }
 
     for(VerletParticle& particle : world->cuda_world->particles)

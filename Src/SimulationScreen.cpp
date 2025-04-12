@@ -19,6 +19,9 @@ DoProfilerWindow(SimulationScreen* screen)
     {
         screen->world->cuda_world->particles.data[0].position.x += 20.0f;
         screen->world->cuda_world->particles.data[0].position.y += 20.0f;
+
+        screen->world->cuda_world->particles.data[10000].position.x -= 20.0f;
+        screen->world->cuda_world->particles.data[10000].position.y -= 20.0f;
     }
     
     ImGui::Columns(4, "profiler_columns");
