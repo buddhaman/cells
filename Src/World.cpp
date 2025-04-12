@@ -22,7 +22,7 @@ bool InitWorld(World* world)
     
     // Initialize particles in a 100x100 uniform grid and connect them with constraints
     int grid_size = 80;
-    float spacing = 5.0f;
+    float spacing = 10.0f;
     
     // Create particles in a grid
     for (int y = 0; y < grid_size; y++) {
@@ -60,6 +60,24 @@ bool InitWorld(World* world)
                 constraint->particle2 = &cuda_world->particles.data[current_idx + grid_size];
                 constraint->rest_length = spacing;
                 constraint->stiffness = 0.5f;
+            }
+
+            // Connect to bottom-right diagonal neighbor
+            if (x < grid_size - 1 && y < grid_size - 1) {
+                VerletConstraint* constraint = cuda_world->constraints.PushBack();
+                constraint->particle1 = current;
+                constraint->particle2 = &cuda_world->particles.data[current_idx + grid_size + 1];
+                constraint->rest_length = spacing * sqrtf(2.0f); // Diagonal length
+                constraint->stiffness = 0.3f;
+            }
+
+            // Connect to bottom-left diagonal neighbor
+            if (x > 0 && y < grid_size - 1) {
+                VerletConstraint* constraint = cuda_world->constraints.PushBack();
+                constraint->particle1 = current;
+                constraint->particle2 = &cuda_world->particles.data[current_idx + grid_size - 1];
+                constraint->rest_length = spacing * sqrtf(2.0f); // Diagonal length
+                constraint->stiffness = 0.3f;
             }
         }
     }
