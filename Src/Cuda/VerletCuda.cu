@@ -68,7 +68,7 @@ __global__ void UpdatePositionsKernel(CudaWorld* cuda_world)
     // Store current position
     float2 temp = p->position;
     
-    float2 velocity = (p->position - p->old_position) * 0.94f;
+    float2 velocity = (p->position - p->old_position) * 0.99f;
     p->position = p->position + velocity;
     p->old_position = temp;
     
@@ -105,7 +105,6 @@ __global__ void AccumulateConstraintCorrectionsKernel(CudaWorld* cuda_world)
     // Calculate correction with stiffness
     float2 correction = delta * error * c->stiffness * 0.3f;
 
-    // Use atomic operations to safely accumulate corrections
     if (!p1->is_static) {
         atomicAdd(&p1->correction_accumulator.x, correction.x);
         atomicAdd(&p1->correction_accumulator.y, correction.y);
@@ -144,7 +143,7 @@ void UpdateVerletParticles(CudaWorld* cuda_world)
     cudaDeviceSynchronize();
 
     // Solve constraints multiple times for stability
-    const int solver_iterations = 5;
+    const int solver_iterations = 3;
     const int constraint_block_size = 256;
     const int num_constraint_blocks = (cuda_world->constraints.size + constraint_block_size - 1) / constraint_block_size;
     
